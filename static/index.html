@@ -2,32 +2,124 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agente Bruner - Protótipo</title>
   <style>
+    :root {
+      --bg-gradient-start: #0f172a;
+      --bg-gradient-end:   #1e293b;
+      --primary:           #4f46e5;
+      --primary-dark:      #4338ca;
+      --primary-soft:      #e0e7ff;
+      --secondary:         #e5e7eb;
+      --text-main:         #0f172a;
+      --text-muted:        #6b7280;
+      --card-bg:           #ffffff;
+      --border-soft:       #e5e7eb;
+      --shadow-soft:       0 20px 35px rgba(15, 23, 42, 0.25);
+      --radius-lg:         18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      min-height: 100vh;
       padding: 16px;
-      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top left, #312e81, transparent 60%),
+                  radial-gradient(circle at bottom right, #0ea5e9, transparent 55%),
+                  linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+      background-attachment: fixed;
+      color: var(--text-main);
     }
-    h1 {
-      margin-bottom: 8px;
+
+    /* CENTRALIZA O CONTEÚDO EM MOBILE E DESKTOP */
+    #app-wrapper {
+      width: 100%;
+      max-width: 960px;
     }
-    #container {
-      max-width: 800px;
+
+    /* CARD BASE (LANDING E CHAT) */
+    .card {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 24px 20px;
       margin: 0 auto;
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      display: none; /* começa escondido, só aparece depois do botão "Começar conversa" */
     }
+
+    /* LANDING */
+    #landing {
+      max-width: 620px;
+      text-align: center;
+      margin: 0 auto 16px auto;
+    }
+    #landing h1 {
+      font-size: 26px;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+    #landing p {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    #btnStartChat {
+      padding: 11px 26px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.4);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+    }
+    #btnStartChat:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 16px 28px rgba(79, 70, 229, 0.55);
+    }
+    #btnStartChat:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.35);
+    }
+
+    /* CHAT CONTAINER */
+    #container {
+      max-width: 960px;
+      margin: 0 auto;
+      display: none; /* aparece só depois do "Começar conversa" */
+    }
+
+    #container h1 {
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      color: var(--text-main);
+    }
+    #container p.subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0 0 10px 0;
+      line-height: 1.4;
+    }
+
     #chat {
       height: 320px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
       padding: 8px;
       overflow-y: auto;
-      background: #fafafa;
+      background: #f9fafb;
       font-size: 14px;
       margin-bottom: 12px;
       white-space: pre-wrap;
@@ -37,141 +129,197 @@
     }
     .msg-user {
       text-align: right;
-      color: #0d47a1;
+      color: #1d4ed8;
     }
     .msg-bot {
       text-align: left;
-      color: #222;
+      color: #111827;
     }
     .msg span.role {
-      font-weight: bold;
+      font-weight: 600;
       display: block;
+      margin-bottom: 1px;
     }
+
     textarea {
       width: 100%;
       box-sizing: border-box;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      padding: 10px 12px;
       font-family: inherit;
       font-size: 14px;
       resize: vertical;
       margin-bottom: 8px;
+      outline: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
     }
-    button {
-      padding: 8px 12px;
-      margin-right: 6px;
-      margin-top: 4px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button.primary {
-      background: #1976d2;
-      color: #fff;
-    }
-    button.secondary {
-      background: #e0e0e0;
-      color: #000;
-    }
-    #upload-section {
-      margin-top: 16px;
-      padding-top: 12px;
-      border-top: 1px solid #ddd;
-      font-size: 14px;
-    }
-    #status {
-      margin-top: 8px;
-      font-size: 13px;
-      color: #555;
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.25);
     }
 
-    /* Landing */
-    #landing {
-      max-width: 800px;
-      margin: 40px auto;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-      text-align: center;
-    }
-    #landing h1 {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
-    #landing p {
-      font-size: 15px;
-      color: #555;
-      margin-bottom: 16px;
-    }
-    #btnStartChat {
-      padding: 10px 22px;
-      font-size: 16px;
+    button {
+      padding: 8px 12px;
       border-radius: 999px;
       border: none;
       cursor: pointer;
-      background: #1976d2;
-      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
     }
-    #btnStartChat:hover {
-      background: #11549c;
+    button.primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+    }
+    button.primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    button.primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 3px 8px rgba(79, 70, 229, 0.3);
+    }
+    button.secondary {
+      background: var(--secondary);
+      color: var(--text-main);
+    }
+    button.secondary:hover {
+      background: #d1d5db;
+    }
+
+    .actions-row,
+    .voice-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    #upload-section {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-soft);
+      font-size: 13px;
+    }
+    #upload-section strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+    #file {
+      font-size: 13px;
+      margin: 4px 0 6px 0;
+    }
+
+    #status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* MOBILE AJUSTES */
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+        align-items: flex-start;
+      }
+      #landing,
+      #container .card {
+        padding: 18px 14px;
+      }
+      #landing h1 {
+        font-size: 22px;
+      }
+      #container h1 {
+        font-size: 18px;
+      }
+      #chat {
+        height: 260px;
+      }
+      .actions-row,
+      .voice-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      .actions-row button,
+      .voice-row button {
+        flex: 1 1 calc(50% - 4px);
+        text-align: center;
+      }
+      #btnStartChat {
+        width: 100%;
+      }
+    }
+
+    /* TELAS MUITO GRANDES */
+    @media (min-width: 1024px) {
+      #landing,
+      #container .card {
+        padding: 28px 28px;
+      }
     }
   </style>
 </head>
 <body>
-
-  <!-- LANDING / HOME -->
-  <div id="landing">
-    <h1>Agente Bruner</h1>
-    <p>
-      Olá, Paulo! Esta é a sua agente pessoal Bruner.<br>
-      Ela lê textos e PDFs, responde perguntas, conversa por voz e ainda fala em português com você.
-    </p>
-    <p>
-      Clique abaixo para iniciar a conversa:
-    </p>
-    <button id="btnStartChat">Começar conversa</button>
-  </div>
-
-  <!-- CHAT / APP -->
-  <div id="container">
-    <h1>Bruner – agente inteligente</h1>
-    <p style="font-size:14px; color:#555;">
-      Você pode:
-      <br>- Enviar uma pergunta ou comando para a Bruner.
-      <br>- Fazer upload de um arquivo de texto ou PDF para ela ler.
-      <br>- Ouvir em voz alta a última resposta.
-      <br>- Falar no microfone e conversar por áudio.
-    </p>
-
-    <div id="chat"></div>
-
-    <textarea id="input" rows="3" placeholder="Digite sua pergunta, pedido de informação ou comando..."></textarea>
-    <div>
-      <button id="send" class="primary">Enviar</button>
-      <button id="speak" class="secondary">Ouvir última resposta (navegador)</button>
-      <button id="speak-ia" class="secondary">Gerar áudio IA</button>
-      <button id="toggle-ia" class="secondary">Play / Pause IA</button>
+  <div id="app-wrapper">
+    <!-- LANDING / HOME -->
+    <div id="landing" class="card">
+      <h1>Agente Bruner</h1>
+      <p>
+        Olá, Paulo! Esta é a sua agente pessoal Bruner.<br>
+        Ela lê textos e PDFs, responde perguntas, conversa por voz e ainda fala em português com você.
+      </p>
+      <p>
+        Clique abaixo para iniciar a conversa:
+      </p>
+      <button id="btnStartChat">Começar conversa</button>
     </div>
 
-    <div style="margin-top:8px;">
-      <button id="start-rec" class="secondary">🎙️ Gravar áudio (voz)</button>
-      <button id="stop-rec" class="secondary" disabled>Parar gravação</button>
-    </div>
+    <!-- CHAT / APP -->
+    <div id="container">
+      <div class="card">
+        <h1>Bruner – agente inteligente</h1>
+        <p class="subtitle">
+          Você pode:
+          <br>- Enviar uma pergunta ou comando para a Bruner.
+          <br>- Fazer upload de um arquivo de texto ou PDF para ela ler.
+          <br>- Ouvir em voz alta a última resposta.
+          <br>- Falar no microfone e conversar por áudio.
+        </p>
 
-    <div id="upload-section">
-      <strong>Upload de arquivo de texto</strong><br>
-      <input
-        type="file"
-        id="file"
-        accept=".txt,.md,.csv,.json,.log,.pdf,image/*"
-      />
-      <button id="upload" class="secondary">Enviar arquivo</button>
-    </div>
+        <div id="chat"></div>
 
-    <div id="status"></div>
+        <textarea id="input" rows="3" placeholder="Digite sua pergunta, pedido de informação ou comando..."></textarea>
+
+        <div class="actions-row">
+          <button id="send" class="primary">Enviar</button>
+          <button id="speak" class="secondary">Ouvir (navegador)</button>
+          <button id="speak-ia" class="secondary">Gerar áudio IA</button>
+          <button id="toggle-ia" class="secondary">Play / Pause IA</button>
+        </div>
+
+        <div class="voice-row">
+          <button id="start-rec" class="secondary">🎙️ Gravar áudio (voz)</button>
+          <button id="stop-rec" class="secondary" disabled>Parar gravação</button>
+        </div>
+
+        <div id="upload-section">
+          <strong>Upload de arquivo de texto</strong>
+          <input
+            type="file"
+            id="file"
+            accept=".txt,.md,.csv,.json,.log,.pdf,image/*"
+          />
+          <br />
+          <button id="upload" class="secondary">Enviar arquivo</button>
+        </div>
+
+        <div id="status"></div>
+      </div>
+    </div>
   </div>
 
   <script>
