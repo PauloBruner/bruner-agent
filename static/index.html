@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Agente Inteligente - Protótipo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      background: #f5f5f5;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    #container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    #chat {
+      height: 320px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px;
+      overflow-y: auto;
+      background: #fafafa;
+      font-size: 14px;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+    .msg {
+      margin: 6px 0;
+    }
+    .msg-user {
+      text-align: right;
+      color: #0d47a1;
+    }
+    .msg-bot {
+      text-align: left;
+      color: #222;
+    }
+    .msg span.role {
+      font-weight: bold;
+      display: block;
+    }
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      padding: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+    button {
+      padding: 8px 12px;
+      margin-right: 6px;
+      margin-top: 4px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.primary {
+      background: #1976d2;
+      color: #fff;
+    }
+    button.secondary {
+      background: #e0e0e0;
+      color: #000;
+    }
+    #upload-section {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #ddd;
+      font-size: 14px;
+    }
+    #status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>Agente Inteligente</h1>
+    <p style="font-size:14px; color:#555;">
+      Este é um protótipo. Você pode:
+      <br>- Enviar uma pergunta ou comando para o agente.
+      <br>- Fazer upload de um arquivo de texto ou PDF para ele ler.
+      <br>- Ouvir em voz alta a última resposta.
+      <br>- Falar no microfone e conversar por áudio.
+    </p>
+
+    <div id="chat"></div>
+
+    <textarea id="input" rows="3" placeholder="Digite sua pergunta, pedido de informação ou comando..."></textarea>
+    <div>
+      <button id="send" class="primary">Enviar</button>
+      <button id="speak" class="secondary">Ouvir última resposta (navegador)</button>
+      <button id="speak-ia" class="secondary">Gerar áudio IA</button>
+      <button id="toggle-ia" class="secondary">Play / Pause IA</button>
+    </div>
+
+    <div style="margin-top:8px;">
+      <button id="start-rec" class="secondary">🎙️ Gravar áudio (voz)</button>
+      <button id="stop-rec" class="secondary" disabled>Parar gravação</button>
+    </div>
+
+    <div id="upload-section">
+      <strong>Upload de arquivo de texto</strong><br>
+      <input
+        type="file"
+        id="file"
+        accept=".txt,.md,.csv,.json,.log,.pdf,image/*"
+      />
+      <button id="upload" class="secondary">Enviar arquivo</button>
+    </div>
+
+    <div id="status"></div>
+  </div>
+  <script>
+    // ID único por navegador, salvo no localStorage
+    let clientId = localStorage.getItem('agentClientId');
+    if (!clientId) {
+      clientId = 'client-' + Math.random().toString(36).slice(2);
+      localStorage.setItem('agentClientId', clientId);
+    }
+
+    const chatEl = document.getElementById('chat');
+    const inputEl = document.getElementById('input');
+    const statusEl = document.getElementById('status');
+
+    let ultimaResposta = "";
+    let iaAudio = null; // guarda o áudio gerado pela IA
+    let navegadorUtterance = null; // fala do navegador
+
+    function adicionarMensagem(tipo, texto) {
+      const linha = document.createElement('div');
+      linha.className = 'msg ' + (tipo === 'user' ? 'msg-user' : 'msg-bot');
+
+      const roleSpan = document.createElement('span');
+      roleSpan.className = 'role';
+      roleSpan.textContent = tipo === 'user' ? 'Paulo:' : 'Bruner:';
+
+      const textoSpan = document.createElement('span');
+      textoSpan.textContent = texto;
+
+      linha.appendChild(roleSpan);
+      linha.appendChild(textoSpan);
+
+      chatEl.appendChild(linha);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    async function enviarMensagem() {
+      const msg = inputEl.value.trim();
+      if (!msg) return;
+
+      adicionarMensagem('user', msg);
+      inputEl.value = '';
+      statusEl.textContent = 'Enviando mensagem para o agente...';
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, client_id: clientId })
+        });
+
+        if (!res.ok) throw new Error('Erro na resposta do servidor.');
+
+        const data = await res.json();
+        const reply = data.reply || '(sem resposta)';
+        ultimaResposta = reply;
+        adicionarMensagem('bot', reply);
+        statusEl.textContent = 'Resposta recebida.';
+
+        // 👉 aqui: fala a resposta automaticamente
+        await ouvirUltimaRespostaIA();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Erro ao se comunicar com o servidor.';
+      }
+    }
+
+    async function enviarArquivo() {
+      const fileInput = document.getElementById('file');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert('Escolha um arquivo de texto primeiro.');
+        return;
+      }
+
+      statusEl.textContent = 'Enviando arquivo para o servidor...';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('client_id', clientId); // <- ESSENCIAL!
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) throw new Error('Erro na resposta do servidor ao enviar arquivo.');
+
+        const data = await res.json();
+
+        if (data.error) {
+          statusEl.textContent = 'Erro: ' + data.error;
+          return;
+        }
+
+        const nome = data.filename || file.name;
+        const preview = data.preview || '(sem prévia)';
+        const resumo = data.summary || '(não foi possível gerar resumo)';
+
+        adicionarMensagem('user', 'Enviei o arquivo: ' + nome);
+        adicionarMensagem(
+          'bot',
+          'Li o arquivo "' + nome + '".\n\nPrévia do conteúdo:\n' +
+          preview + '\n\nResumo gerado pela IA:\n' + resumo
+        );
+
+        ultimaResposta = resumo;
+        statusEl.textContent = 'Arquivo processado e resumo gerado.';
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Erro ao enviar arquivo.';
+      }
+    }
+
+    // ========================
+    // Leitura pelo NAVEGADOR
+    // ========================
+    function ouvirUltimaResposta() {
+      if (!ultimaResposta) {
+        alert('Ainda não há nenhuma resposta para ler.');
+        return;
+      }
+
+      if (!('speechSynthesis' in window)) {
+        alert('Seu navegador não suporta leitura de texto via síntese de voz.');
+        return;
+      }
+
+      // Cancela qualquer fala anterior
+      window.speechSynthesis.cancel();
+
+      navegadorUtterance = new SpeechSynthesisUtterance(ultimaResposta);
+      navegadorUtterance.lang = 'pt-BR';
+      navegadorUtterance.rate = 1;
+      navegadorUtterance.pitch = 1;
+
+      navegadorUtterance.onstart = () => {
+        statusEl.textContent = 'Lendo com voz do navegador...';
+      };
+      navegadorUtterance.onend = () => {
+        statusEl.textContent = 'Leitura (navegador) finalizada.';
+      };
+
+      window.speechSynthesis.speak(navegadorUtterance);
+    }
+
+    // ========================
+    // Leitura pela IA (TTS)
+    // ========================
+    async function ouvirUltimaRespostaIA() {
+      if (!ultimaResposta) {
+        alert('Ainda não há nenhuma resposta para ler.');
+        return;
+      }
+
+      statusEl.textContent = 'Gerando áudio com voz IA...';
+
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: ultimaResposta })
+        });
+
+        if (!res.ok) throw new Error('Erro ao gerar áudio.');
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+
+        // Se já existia um áudio, para e libera
+        if (iaAudio) {
+          iaAudio.pause();
+          URL.revokeObjectURL(iaAudio.src);
+          iaAudio = null;
+        }
+
+        iaAudio = new Audio(url);
+        iaAudio.onended = () => {
+          statusEl.textContent = 'Áudio IA finalizado.';
+          document.getElementById('toggle-ia').textContent = 'Play / Pause IA';
+        };
+        iaAudio.play();
+
+        statusEl.textContent = 'Reproduzindo áudio (IA).';
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Erro ao gerar áudio com a IA.';
+      }
+    }
+
+    function toggleAudioIA() {
+      if (!iaAudio) {
+        alert('Nenhum áudio IA foi gerado ainda. Clique primeiro em "Gerar áudio IA".');
+        return;
+      }
+
+      const toggleBtn = document.getElementById('toggle-ia');
+
+      if (iaAudio.paused) {
+        iaAudio.play();
+        statusEl.textContent = 'Reproduzindo áudio (IA).';
+        toggleBtn.textContent = 'Pausar IA';
+      } else {
+        iaAudio.pause();
+        statusEl.textContent = 'Áudio IA pausado.';
+        toggleBtn.textContent = 'Play / Pause IA';
+      }
+    }
+
+    // ========================
+    // GRAVAÇÃO DE VOZ (STT)
+    // ========================
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    async function iniciarGravacao() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Seu navegador não suporta gravação de áudio.');
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = enviarAudioParaServidor;
+
+        mediaRecorder.start();
+        statusEl.textContent = 'Gravando... fale agora.';
+        document.getElementById('start-rec').disabled = true;
+        document.getElementById('stop-rec').disabled = false;
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao acessar o microfone.');
+      }
+    }
+
+    function pararGravacao() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        statusEl.textContent = 'Processando áudio...';
+        document.getElementById('start-rec').disabled = false;
+        document.getElementById('stop-rec').disabled = true;
+      }
+    }
+
+    async function enviarAudioParaServidor() {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+
+      const formData = new FormData();
+      formData.append('audio', blob, 'gravacao.webm');
+      formData.append('client_id', clientId);
+
+      try {
+        const res = await fetch('/api/stt', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) throw new Error('Erro ao enviar áudio para o servidor.');
+
+        const data = await res.json();
+
+        if (data.error) {
+          statusEl.textContent = 'Erro: ' + data.error;
+          return;
+        }
+
+        const userText = data.user_text || '(não reconhecido)';
+        const replyText = data.reply_text || '(sem resposta)';
+
+        adicionarMensagem('user', userText);
+        adicionarMensagem('bot', replyText);
+
+        ultimaResposta = replyText;
+        statusEl.textContent = 'Resposta de voz processada.';
+
+        // 👉 aqui: gera e toca o áudio automaticamente
+        await ouvirUltimaRespostaIA();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Erro ao processar áudio.';
+      }
+    }
+
+
+    // ========================
+    // EVENT LISTENERS
+    // ========================
+
+    document.getElementById('send').addEventListener('click', enviarMensagem);
+    document.getElementById('upload').addEventListener('click', enviarArquivo);
+    document.getElementById('speak').addEventListener('click', ouvirUltimaResposta);
+    document.getElementById('speak-ia').addEventListener('click', ouvirUltimaRespostaIA);
+    document.getElementById('toggle-ia').addEventListener('click', toggleAudioIA);
+
+    document.getElementById('start-rec').addEventListener('click', iniciarGravacao);
+    document.getElementById('stop-rec').addEventListener('click', pararGravacao);
+
+    // Enter envia, Shift+Enter quebra linha
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        enviarMensagem();
+      }
+    });
+  </script>
+</body>
+</html>
