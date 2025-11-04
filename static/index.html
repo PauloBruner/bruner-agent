@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>Agente Inteligente - Protótipo</title>
+  <title>Agente Bruner - Protótipo</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -19,6 +19,7 @@
       border-radius: 8px;
       padding: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: none; /* começa escondido, só aparece depois do botão "Começar conversa" */
     }
     #chat {
       height: 320px;
@@ -85,15 +86,62 @@
       font-size: 13px;
       color: #555;
     }
+
+    /* Landing */
+    #landing {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    #landing h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    #landing p {
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 16px;
+    }
+    #btnStartChat {
+      padding: 10px 22px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: #1976d2;
+      color: #fff;
+    }
+    #btnStartChat:hover {
+      background: #11549c;
+    }
   </style>
 </head>
 <body>
+
+  <!-- LANDING / HOME -->
+  <div id="landing">
+    <h1>Agente Bruner</h1>
+    <p>
+      Olá, Paulo! Esta é a sua agente pessoal Bruner.<br>
+      Ela lê textos e PDFs, responde perguntas, conversa por voz e ainda fala em português com você.
+    </p>
+    <p>
+      Clique abaixo para iniciar a conversa:
+    </p>
+    <button id="btnStartChat">Começar conversa</button>
+  </div>
+
+  <!-- CHAT / APP -->
   <div id="container">
-    <h1>Agente Inteligente</h1>
+    <h1>Bruner – agente inteligente</h1>
     <p style="font-size:14px; color:#555;">
-      Este é um protótipo. Você pode:
-      <br>- Enviar uma pergunta ou comando para o agente.
-      <br>- Fazer upload de um arquivo de texto ou PDF para ele ler.
+      Você pode:
+      <br>- Enviar uma pergunta ou comando para a Bruner.
+      <br>- Fazer upload de um arquivo de texto ou PDF para ela ler.
       <br>- Ouvir em voz alta a última resposta.
       <br>- Falar no microfone e conversar por áudio.
     </p>
@@ -125,7 +173,16 @@
 
     <div id="status"></div>
   </div>
+
   <script>
+    // Landing -> Chat
+    const landingEl = document.getElementById('landing');
+    const appContainerEl = document.getElementById('container');
+    document.getElementById('btnStartChat').addEventListener('click', () => {
+      landingEl.style.display = 'none';
+      appContainerEl.style.display = 'block';
+    });
+
     // ID único por navegador, salvo no localStorage
     let clientId = localStorage.getItem('agentClientId');
     if (!clientId) {
@@ -165,7 +222,7 @@
 
       adicionarMensagem('user', msg);
       inputEl.value = '';
-      statusEl.textContent = 'Enviando mensagem para o agente...';
+      statusEl.textContent = 'Enviando mensagem para a Bruner...';
 
       try {
         const res = await fetch('/api/chat', {
@@ -182,7 +239,7 @@
         adicionarMensagem('bot', reply);
         statusEl.textContent = 'Resposta recebida.';
 
-        // 👉 aqui: fala a resposta automaticamente
+        // FALA AUTOMÁTICA da resposta
         await ouvirUltimaRespostaIA();
       } catch (err) {
         console.error(err);
@@ -228,11 +285,14 @@
         adicionarMensagem(
           'bot',
           'Li o arquivo "' + nome + '".\n\nPrévia do conteúdo:\n' +
-          preview + '\n\nResumo gerado pela IA:\n' + resumo
+          preview + '\n\nResumo gerado pela Bruner:\n' + resumo
         );
 
         ultimaResposta = resumo;
         statusEl.textContent = 'Arquivo processado e resumo gerado.';
+
+        // opcional: já falar o resumo
+        await ouvirUltimaRespostaIA();
       } catch (err) {
         console.error(err);
         statusEl.textContent = 'Erro ao enviar arquivo.';
@@ -280,7 +340,7 @@
         return;
       }
 
-      statusEl.textContent = 'Gerando áudio com voz IA...';
+      statusEl.textContent = 'Gerando áudio com voz da Bruner (IA)...';
 
       try {
         const res = await fetch('/api/tts', {
@@ -303,7 +363,7 @@
 
         iaAudio = new Audio(url);
         iaAudio.onended = () => {
-          statusEl.textContent = 'Áudio IA finalizado.';
+          statusEl.textContent = 'Áudio da Bruner finalizado.';
           document.getElementById('toggle-ia').textContent = 'Play / Pause IA';
         };
         iaAudio.play();
@@ -317,7 +377,7 @@
 
     function toggleAudioIA() {
       if (!iaAudio) {
-        alert('Nenhum áudio IA foi gerado ainda. Clique primeiro em "Gerar áudio IA".');
+        alert('Nenhum áudio IA foi gerado ainda. Clique primeiro em "Gerar áudio IA" ou aguarde a resposta automática.');
         return;
       }
 
@@ -361,7 +421,7 @@
         mediaRecorder.onstop = enviarAudioParaServidor;
 
         mediaRecorder.start();
-        statusEl.textContent = 'Gravando... fale agora.';
+        statusEl.textContent = 'Gravando... fale com a Bruner agora.';
         document.getElementById('start-rec').disabled = true;
         document.getElementById('stop-rec').disabled = false;
       } catch (err) {
@@ -410,14 +470,13 @@
         ultimaResposta = replyText;
         statusEl.textContent = 'Resposta de voz processada.';
 
-        // 👉 aqui: gera e toca o áudio automaticamente
+        // Fala automática da resposta de voz
         await ouvirUltimaRespostaIA();
       } catch (err) {
         console.error(err);
         statusEl.textContent = 'Erro ao processar áudio.';
       }
     }
-
 
     // ========================
     // EVENT LISTENERS
