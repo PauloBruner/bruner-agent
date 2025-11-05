@@ -5,9 +5,9 @@ from collections import defaultdict
 from openai import OpenAI
 from PyPDF2 import PdfReader
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # CONFIGURAÇÃO BÁSICA DO FLASK
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 app = Flask(
     __name__,
@@ -15,9 +15,9 @@ app = Flask(
     static_url_path=""
 )
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # CONFIG OPENAI
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
@@ -26,12 +26,11 @@ if OPENAI_API_KEY:
     client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Memória por usuário (cada navegador tem um client_id diferente)
-# conversation_histories["client-xyz"] = [ {"role": "user", "content": "..."}, ... ]
 conversation_histories = defaultdict(list)
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # FUNÇÕES DE IA
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 def gerar_resposta_agente(client_id: str) -> str:
     """
@@ -53,18 +52,15 @@ def gerar_resposta_agente(client_id: str) -> str:
 
     try:
         resposta = client.chat.completions.create(
-            model="gpt-4o-mini",  # ou outro modelo compatível da sua conta
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "Você é uma assistente virtual chamada Bruner. "
+                        "Você é um assistente virtual chamado Agente B. "
                         "Você fala em Português Brasileiro, de forma clara, objetiva e amigável. "
-                        "O usuário que está conversando com você se chama Paulo. "
-                        "Sempre que for se dirigir diretamente a ele, chame-o de Paulo. "
-                        "Responda normalmente quando ele disser 'Bruner' ou 'Oi Bruner'. "
-                        "Quando o usuário mandar textos longos, você pode explicar, resumir "
-                        "ou destacar os pontos principais."
+                        "O usuário que está conversando com você é simplesmente chamado de 'usuário'. "
+                        "Responda sempre de forma educada, útil e focada na pergunta."
                     ),
                 },
                 *contexto
@@ -75,7 +71,7 @@ def gerar_resposta_agente(client_id: str) -> str:
         texto = resposta.choices[0].message.content
         return texto.strip()
     except Exception as e:
-        print("Erro ao chamar OpenAI (chat):", e)
+        print("Erro ao chamar OpenAI (chat):", repr(e))
         return f"Tive um problema ao falar com o modelo de IA.\nDetalhe técnico: {e}"
 
 
@@ -112,13 +108,14 @@ def resumir_texto(conteudo: str) -> str:
         )
         return resposta.choices[0].message.content.strip()
     except Exception as e:
-        print("Erro ao chamar OpenAI (resumo):", e)
+        print("Erro ao chamar OpenAI (resumo):", repr(e))
         return f"Não consegui resumir o texto por um erro técnico: {e}"
 
 
 def gerar_audio_openai(texto: str) -> str:
     """
     Gera um arquivo MP3 com a voz da OpenAI e devolve o caminho temporário do arquivo.
+    Versão simplificada (sem streaming) para ser mais estável em produção.
     """
     if client is None:
         raise RuntimeError("OpenAI não configurada")
@@ -128,7 +125,7 @@ def gerar_audio_openai(texto: str) -> str:
     tmp.close()
 
     try:
-        with client.audio.speech.with_streaming_response.create(
+        audio_bytes = client.audio.speech.create(
             model="gpt-4o-mini-tts",
             voice="alloy",
             input=texto,
@@ -136,45 +133,53 @@ def gerar_audio_openai(texto: str) -> str:
                 "Fale em português brasileiro, com sotaque natural do Brasil, "
                 "pronúncia clara e ritmo de leitura natural."
             ),
-        ) as response:
-            response.stream_to_file(tmp_path)
-    except Exception:
-        os.unlink(tmp_path)
+        )
+
+        # A API retorna bytes; gravamos no arquivo temporário
+        with open(tmp_path, "wb") as f:
+            f.write(audio_bytes)
+
+    except Exception as e:
+        print("Erro ao gerar TTS:", repr(e))
+        # apaga o arquivo se algo der errado
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
         raise
 
     return tmp_path
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # ROTAS FLASK
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
 
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     data = request.get_json() or {}
     mensagem = data.get("message", "")
-    client_id = data.get("client_id", "anonimo")  # <- pega o mesmo client_id do front
+    client_id = data.get("client_id", "anonimo")
 
     if not mensagem.strip():
         return jsonify({"reply": "Pode repetir a pergunta? Não recebi nenhum texto."})
 
-    # histórico específico desse client_id
     history = conversation_histories[client_id]
 
-    # adiciona mensagem do usuário
     history.append({"role": "user", "content": mensagem})
 
     resposta = gerar_resposta_agente(client_id)
 
-    # adiciona resposta do agente ao histórico
     history.append({"role": "assistant", "content": resposta})
 
-    print(f"[DEBUG] chat: client_id={client_id}, mensagens_no_historico={len(history)}")
+    print(f"[DEBUG] /api/chat: client_id={client_id}, mensagens_no_historico={len(history)}")
 
     return jsonify({"reply": resposta})
+
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
@@ -186,14 +191,12 @@ def upload():
     if not arquivo:
         return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
-    # ✅ pega o client_id enviado pelo front via FormData
     client_id = request.form.get("client_id", "anonimo")
 
     nome = arquivo.filename or "arquivo"
     ext = os.path.splitext(nome)[1].lower()
 
     try:
-        # Lê o conteúdo dependendo da extensão
         if ext in [".txt", ".md", ".csv", ".json", ".log"]:
             conteudo = arquivo.read().decode("utf-8", errors="ignore")
 
@@ -211,11 +214,11 @@ def upload():
                 conteudo = "\n\n".join(partes)
             finally:
                 os.unlink(tmp_path)
-
         else:
             return jsonify({"error": "Tipo de arquivo não suportado. Use .txt ou .pdf."}), 400
 
     except Exception as e:
+        print("Erro ao processar arquivo:", repr(e))
         return jsonify({"error": f"Erro ao processar arquivo: {e}"}), 500
 
     if not conteudo.strip():
@@ -229,9 +232,8 @@ def upload():
     preview = conteudo[:1200]
     resumo = resumir_texto(conteudo)
 
-    # 💾 Armazena o conteúdo completo na memória do usuário
+    # NÃO limpamos o histórico inteiro; apenas acrescentamos a info do arquivo
     history = conversation_histories[client_id]
-    history.clear()  # limpa histórico anterior
     history.append({
         "role": "system",
         "content": (
@@ -240,7 +242,7 @@ def upload():
         )
     })
 
-    print(f"[DEBUG] Conteúdo do arquivo armazenado na memória de {client_id} ({len(conteudo)} caracteres)")
+    print(f"[DEBUG] /api/upload: Conteúdo armazenado em {client_id} ({len(conteudo)} caracteres)")
 
     return jsonify({
         "filename": nome,
@@ -248,6 +250,7 @@ def upload():
         "preview": preview,
         "summary": resumo,
     })
+
 
 @app.route("/api/tts", methods=["POST"])
 def tts():
@@ -264,12 +267,9 @@ def tts():
         mp3_path = gerar_audio_openai(texto)
         return send_file(mp3_path, mimetype="audio/mpeg", as_attachment=False)
     except Exception as e:
-        print("Erro ao gerar TTS:", e)
+        print("Erro ao gerar TTS /api/tts:", repr(e))
         return jsonify({"error": f"Falha ao gerar áudio: {e}"}), 500
 
-# -----------------------------------------------------------------------------
-# NOVA ROTA: /api/stt (fala -> texto -> resposta)
-# -----------------------------------------------------------------------------
 
 @app.route("/api/stt", methods=["POST"])
 def stt_conversa():
@@ -287,48 +287,51 @@ def stt_conversa():
         return jsonify({"error": "Nenhum áudio enviado"}), 400
 
     try:
-        # 1) Salva o áudio em um arquivo temporário
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+        # 1) Salvar áudio em arquivo temporário
+        suffix = ".webm"
+        nome_arquivo = audio_file.filename or ""
+        if nome_arquivo.lower().endswith((".mp4", ".m4a", ".aac")):
+            suffix = ".m4a"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             audio_file.save(tmp)
             tmp_path = tmp.name
 
         try:
-            # 2) Abre o arquivo como binário e manda para a OpenAI
+            # 2) Abrir arquivo e mandar para Whisper
             with open(tmp_path, "rb") as f:
                 transcription = client.audio.transcriptions.create(
-                    # se der erro de modelo, troque para "whisper-1"
-                    model="gpt-4o-transcribe",
+                    model="whisper-1",
                     file=f,
                     response_format="text",
                 )
         finally:
-            # 3) Remove o arquivo temporário
             os.unlink(tmp_path)
 
-        # Quando response_format="text", transcription costuma vir como string
         if isinstance(transcription, str):
             user_text = transcription.strip()
         else:
             user_text = str(transcription).strip()
 
     except Exception as e:
-        print("Erro ao transcrever áudio:", e)
+        print("Erro ao transcrever áudio /api/stt:", repr(e))
         return jsonify({"error": f"Falha ao transcrever áudio: {e}"}), 500
 
-    # 4) Coloca a fala no histórico e gera resposta
+    # Adiciona fala no histórico
     history = conversation_histories[client_id]
     history.append({"role": "user", "content": user_text})
 
     reply_text = gerar_resposta_agente(client_id)
     history.append({"role": "assistant", "content": reply_text})
 
+    print(f"[DEBUG] /api/stt: client_id={client_id}, len_history={len(history)}")
+
     return jsonify({
         "user_text": user_text,
         "reply_text": reply_text,
     })
 
+
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
