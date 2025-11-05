@@ -588,10 +588,19 @@
     }
 
     async function enviarAudioParaServidor() {
-      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      if (!audioChunks.length) {
+        statusEl.textContent = 'Nenhum áudio capturado.';
+        return;
+      }
+
+      // Em iOS, o MediaRecorder normalmente gera áudio compatível com mp4.
+      const mimeType = isIOS ? 'audio/mp4' : 'audio/webm';
+      const fileName = isIOS ? 'gravacao.m4a' : 'gravacao.webm';
+
+      const blob = new Blob(audioChunks, { type: mimeType });
 
       const formData = new FormData();
-      formData.append('audio', blob, 'gravacao.webm');
+      formData.append('audio', blob, fileName);
       formData.append('client_id', clientId);
 
       try {
@@ -600,12 +609,19 @@
           body: formData
         });
 
-        if (!res.ok) throw new Error('Erro ao enviar áudio para o servidor.');
+        // Se o servidor respondeu com erro, tentar ler a mensagem de erro
+        const contentType = res.headers.get('Content-Type') || '';
+        let data;
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          const text = await res.text();
+          data = { error: text || 'Erro desconhecido ao processar áudio.' };
+        }
 
-        const data = await res.json();
-
-        if (data.error) {
-          statusEl.textContent = 'Erro: ' + data.error;
+        if (!res.ok || data.error) {
+          statusEl.textContent = 'Erro: ' + (data.error || 'Falha ao processar áudio.');
+          console.error('Erro /api/stt:', data);
           return;
         }
 
@@ -622,7 +638,7 @@
         await ouvirUltimaRespostaIA();
       } catch (err) {
         console.error(err);
-        statusEl.textContent = 'Erro ao processar áudio.';
+        statusEl.textContent = 'Erro ao processar áudio (requisição falhou).';
       }
     }
 
