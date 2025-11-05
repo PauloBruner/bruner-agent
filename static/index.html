@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agente Bruner - Protótipo</title>
+  <title>Agente B - Protótipo</title>
   <style>
     :root {
       --bg-gradient-start: #0f172a;
@@ -267,9 +267,9 @@
   <div id="app-wrapper">
     <!-- LANDING / HOME -->
     <div id="landing" class="card">
-      <h1>Agente Bruner</h1>
+      <h1>Agente B.</h1>
       <p>
-        Olá, Paulo! Esta é a sua agente pessoal Bruner.<br>
+        Olá, Esta é a sua agente pessoal.<br>
         Ela lê textos e PDFs, responde perguntas, conversa por voz e ainda fala em português com você.
       </p>
       <p>
@@ -295,7 +295,7 @@
         <textarea id="input" rows="3" placeholder="Digite sua pergunta, pedido de informação ou comando..."></textarea>
 
         <div class="actions-row">
-          <button id="send" class="primary">Enviar</button>
+          <button id="send" class="primary">Enviar Texto</button>
           <button id="speak" class="secondary">Ouvir (navegador)</button>
           <button id="speak-ia" class="secondary">Gerar áudio IA</button>
           <button id="toggle-ia" class="secondary">Play / Pause IA</button>
@@ -303,7 +303,7 @@
 
         <div class="voice-row">
           <button id="start-rec" class="secondary">🎙️ Gravar áudio (voz)</button>
-          <button id="stop-rec" class="secondary" disabled>Parar gravação</button>
+          <button id="stop-rec" class="secondary" disabled>Enviar Audio</button>
         </div>
 
         <div id="upload-section">
@@ -352,7 +352,7 @@
 
       const roleSpan = document.createElement('span');
       roleSpan.className = 'role';
-      roleSpan.textContent = tipo === 'user' ? 'Paulo:' : 'Bruner:';
+      roleSpan.textContent = tipo === 'user' ? 'Paulo:' : 'Agente B:';
 
       const textoSpan = document.createElement('span');
       textoSpan.textContent = texto;
