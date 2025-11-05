@@ -1,667 +1,322 @@
-<!doctype html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agente B - Protótipo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agente B – agente inteligente</title>
   <style>
     :root {
-      --bg-gradient-start: #0f172a;
-      --bg-gradient-end:   #1e293b;
-      --primary:           #4f46e5;
-      --primary-dark:      #4338ca;
-      --primary-soft:      #e0e7ff;
-      --secondary:         #e5e7eb;
-      --text-main:         #0f172a;
-      --text-muted:        #6b7280;
-      --card-bg:           #ffffff;
-      --border-soft:       #e5e7eb;
-      --shadow-soft:       0 20px 35px rgba(15, 23, 42, 0.25);
-      --radius-lg:         18px;
-    }
-
-    * {
-      box-sizing: border-box;
+      --azul: #4f46e5;
+      --azul-escuro: #312e81;
+      --cinza: #f8f9fc;
+      --sombra: rgba(0, 0, 0, 0.15);
     }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Inter", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #111827 0%, #1e293b 100%);
+      color: #111;
       margin: 0;
-      min-height: 100vh;
-      padding: 16px;
+      padding: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at top left, #312e81, transparent 60%),
-                  radial-gradient(circle at bottom right, #0ea5e9, transparent 55%),
-                  linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
-      background-attachment: fixed;
-      color: var(--text-main);
+      justify-content: flex-start;
+      min-height: 100vh;
     }
 
-    /* CENTRALIZA O CONTEÚDO EM MOBILE E DESKTOP */
-    #app-wrapper {
-      width: 100%;
-      max-width: 960px;
-    }
-
-    /* CARD BASE (LANDING E CHAT) */
-    .card {
-      background: rgba(255, 255, 255, 0.98);
-      backdrop-filter: blur(10px);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-soft);
-      padding: 24px 20px;
-      margin: 0 auto;
-    }
-
-    /* LANDING */
-    #landing {
-      max-width: 620px;
+    h1 {
       text-align: center;
-      margin: 0 auto 16px auto;
-    }
-    #landing h1 {
-      font-size: 26px;
-      margin-bottom: 8px;
-      color: var(--text-main);
-    }
-    #landing p {
-      font-size: 15px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      line-height: 1.5;
-    }
-    #btnStartChat {
-      padding: 11px 26px;
-      font-size: 16px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      background: var(--primary);
-      color: #fff;
-      font-weight: 600;
-      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.4);
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
-    }
-    #btnStartChat:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-      box-shadow: 0 16px 28px rgba(79, 70, 229, 0.55);
-    }
-    #btnStartChat:active {
-      transform: translateY(1px);
-      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.35);
+      font-size: 1.4rem;
+      color: var(--azul);
+      margin-top: 1.5rem;
     }
 
-    /* CHAT CONTAINER */
-    #container {
-      max-width: 960px;
-      margin: 0 auto;
-      display: none; /* aparece só depois do "Começar conversa" */
-    }
-
-    #container h1 {
-      margin: 0 0 6px 0;
-      font-size: 22px;
-      color: var(--text-main);
-    }
-    #container p.subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 0 0 10px 0;
-      line-height: 1.4;
+    .container {
+      background: #fff;
+      border-radius: 1rem;
+      box-shadow: 0 0 20px var(--sombra);
+      width: 95%;
+      max-width: 680px;
+      margin: 1rem;
+      padding: 1rem 1.2rem 2rem;
+      box-sizing: border-box;
     }
 
     #chat {
-      height: 320px;
-      border: 1px solid var(--border-soft);
-      border-radius: 12px;
-      padding: 8px;
+      background: var(--cinza);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      min-height: 250px;
+      max-height: 400px;
       overflow-y: auto;
-      background: #f9fafb;
-      font-size: 14px;
-      margin-bottom: 12px;
-      white-space: pre-wrap;
+      margin-bottom: 1rem;
     }
-    .msg {
-      margin: 6px 0;
-    }
+
     .msg-user {
       text-align: right;
-      color: #1d4ed8;
+      margin: 0.4rem 0;
+      color: var(--azul-escuro);
+      font-weight: 600;
     }
+
     .msg-bot {
       text-align: left;
-      color: #111827;
-    }
-    .msg span.role {
-      font-weight: 600;
-      display: block;
-      margin-bottom: 1px;
+      margin: 0.4rem 0;
+      color: #111;
     }
 
     textarea {
       width: 100%;
-      box-sizing: border-box;
-      border-radius: 12px;
-      border: 1px solid var(--border-soft);
-      padding: 10px 12px;
-      font-family: inherit;
-      font-size: 14px;
-      resize: vertical;
-      margin-bottom: 8px;
-      outline: none;
-      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      padding: 0.6rem;
+      font-size: 1rem;
+      resize: none;
     }
-    textarea:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.25);
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.8rem;
     }
 
     button {
-      padding: 8px 12px;
-      border-radius: 999px;
+      flex: 1;
+      background: var(--azul);
+      color: white;
       border: none;
+      border-radius: 1.5rem;
+      padding: 0.6rem;
+      font-size: 0.95rem;
       cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
-    }
-    button.primary {
-      background: var(--primary);
-      color: #fff;
-      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
-    }
-    button.primary:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-    }
-    button.primary:active {
-      transform: translateY(1px);
-      box-shadow: 0 3px 8px rgba(79, 70, 229, 0.3);
-    }
-    button.secondary {
-      background: var(--secondary);
-      color: var(--text-main);
-    }
-    button.secondary:hover {
-      background: #d1d5db;
+      transition: background 0.3s;
     }
 
-    .actions-row,
-    .voice-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-
-    #upload-section {
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border-soft);
-      font-size: 13px;
-    }
-    #upload-section strong {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--text-main);
-    }
-    #file {
-      font-size: 13px;
-      margin: 4px 0 6px 0;
+    button:hover {
+      background: var(--azul-escuro);
     }
 
     #status {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--text-muted);
+      margin-top: 0.6rem;
+      font-size: 0.9rem;
+      color: #555;
     }
 
-    /* MOBILE AJUSTES */
-    @media (max-width: 640px) {
-      body {
-        padding: 10px;
-        align-items: flex-start;
-      }
-      #landing,
-      #container .card {
-        padding: 18px 14px;
-      }
-      #landing h1 {
-        font-size: 22px;
-      }
-      #container h1 {
-        font-size: 18px;
-      }
-      #chat {
-        height: 260px;
-      }
-      .actions-row,
-      .voice-row {
-        flex-direction: row;
-        flex-wrap: wrap;
-      }
-      .actions-row button,
-      .voice-row button {
-        flex: 1 1 calc(50% - 4px);
-        text-align: center;
-      }
-      #btnStartChat {
-        width: 100%;
-      }
+    input[type="file"] {
+      margin-top: 0.5rem;
     }
 
-    /* TELAS MUITO GRANDES */
-    @media (min-width: 1024px) {
-      #landing,
-      #container .card {
-        padding: 28px 28px;
-      }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.2rem; }
+      button { font-size: 0.85rem; padding: 0.5rem; }
     }
   </style>
 </head>
 <body>
-  <div id="app-wrapper">
-    <!-- LANDING / HOME -->
-    <div id="landing" class="card">
-      <h1>Agente B.</h1>
-      <p>
-        Olá, Esta é a sua agente pessoal.<br>
-        Ela lê textos e PDFs, responde perguntas, conversa por voz e ainda fala em português com você.
-      </p>
-      <p>
-        Clique abaixo para iniciar a conversa:
-      </p>
-      <button id="btnStartChat">Começar conversa</button>
+  <h1>Agente B – agente inteligente</h1>
+  <div class="container">
+    <p>
+      Você pode:<br />
+      – Enviar uma pergunta ou comando para o Agente B.<br />
+      – Fazer upload de um arquivo de texto ou PDF para ele ler.<br />
+      – Ouvir em voz alta a última resposta.<br />
+      – Falar no microfone e conversar por áudio.
+    </p>
+
+    <div id="chat"></div>
+
+    <textarea id="input" rows="2" placeholder="Digite sua pergunta ou comando..."></textarea>
+
+    <div class="btn-row">
+      <button id="send-text">Enviar Texto</button>
+      <button id="speak-nav">Ouvir (navegador)</button>
+      <button id="speak-ia">Ouvir áudio IA</button>
+      <button id="play-pause">Play / Pause IA</button>
     </div>
 
-    <!-- CHAT / APP -->
-    <div id="container">
-      <div class="card">
-        <h1>Agente B – agente inteligente</h1>
-        <p class="subtitle">
-          Você pode:
-          <br>- Enviar uma pergunta ou comando para a Bruner.
-          <br>- Fazer upload de um arquivo de texto ou PDF para ela ler.
-          <br>- Ouvir em voz alta a última resposta.
-          <br>- Falar no microfone e conversar por áudio.
-        </p>
-
-        <div id="chat"></div>
-
-        <textarea id="input" rows="3" placeholder="Digite sua pergunta, pedido de informação ou comando..."></textarea>
-
-        <div class="actions-row">
-          <button id="send" class="primary">Enviar Texto</button>
-          <button id="speak" class="secondary">Ouvir (navegador)</button>
-          <button id="speak-ia" class="secondary">Ouvir áudio IA</button>
-          <button id="toggle-ia" class="secondary">Play / Pause IA</button>
-        </div>
-
-        <div class="voice-row">
-          <button id="start-rec" class="secondary">🎙️ Gravar áudio (voz)</button>
-          <button id="stop-rec" class="secondary" disabled>Enviar Audio</button>
-        </div>
-
-        <div id="upload-section">
-          <strong>Upload de arquivo de texto</strong>
-          <input
-            type="file"
-            id="file"
-            accept=".txt,.md,.csv,.json,.log,.pdf,image/*"
-          />
-          <br />
-          <button id="upload" class="secondary">Enviar arquivo</button>
-        </div>
-
-        <div id="status"></div>
-      </div>
+    <div class="btn-row">
+      <button id="start-rec">🎙️ Gravar áudio (voz)</button>
+      <button id="stop-rec">Enviar Áudio</button>
     </div>
+
+    <h3>Upload de arquivo de texto</h3>
+    <input type="file" id="file-input" />
+    <button id="send-file">Enviar arquivo</button>
+
+    <p id="status">Pronto.</p>
   </div>
 
   <script>
-    // Landing -> Chat
-    const landingEl = document.getElementById('landing');
-    const appContainerEl = document.getElementById('container');
-    document.getElementById('btnStartChat').addEventListener('click', () => {
-      landingEl.style.display = 'none';
-      appContainerEl.style.display = 'block';
-    });
-
-    // ID único por navegador, salvo no localStorage
-    let clientId = localStorage.getItem('agentClientId');
-    if (!clientId) {
-      clientId = 'client-' + Math.random().toString(36).slice(2);
-      localStorage.setItem('agentClientId', clientId);
-    }
-
-    const chatEl = document.getElementById('chat');
-    const inputEl = document.getElementById('input');
-    const statusEl = document.getElementById('status');
-
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("input");
+    const statusEl = document.getElementById("status");
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const clientId = "client-" + Math.random().toString(36).slice(2);
     let ultimaResposta = "";
-    let iaAudio = null; // guarda o áudio gerado pela IA
-    let navegadorUtterance = null; // fala do navegador
+    let audioChunks = [];
+    let mediaRecorder;
+    let audioPlayer = new Audio();
 
-    function adicionarMensagem(tipo, texto) {
-      const linha = document.createElement('div');
-      linha.className = 'msg ' + (tipo === 'user' ? 'msg-user' : 'msg-bot');
-
-      const roleSpan = document.createElement('span');
-      roleSpan.className = 'role';
-      roleSpan.textContent = tipo === 'user' ? 'Paulo:' : 'Agente B:';
-
-      const textoSpan = document.createElement('span');
-      textoSpan.textContent = texto;
-
-      linha.appendChild(roleSpan);
-      linha.appendChild(textoSpan);
-
-      chatEl.appendChild(linha);
+    function adicionarMensagem(remetente, texto) {
+      const div = document.createElement("div");
+      if (remetente === "user") {
+        div.className = "msg-user";
+        div.textContent = "Usuário: " + texto;
+      } else {
+        div.className = "msg-bot";
+        div.textContent = "Agente B: " + texto;
+      }
+      chatEl.appendChild(div);
       chatEl.scrollTop = chatEl.scrollHeight;
     }
 
-    async function enviarMensagem() {
+    async function enviarTexto() {
       const msg = inputEl.value.trim();
       if (!msg) return;
-
-      adicionarMensagem('user', msg);
-      inputEl.value = '';
-      statusEl.textContent = 'Enviando mensagem para a Bruner...';
+      adicionarMensagem("user", msg);
+      inputEl.value = "";
+      statusEl.textContent = "Processando...";
 
       try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg, client_id: clientId })
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg, client_id: clientId }),
         });
-
-        if (!res.ok) throw new Error('Erro na resposta do servidor.');
-
         const data = await res.json();
-        const reply = data.reply || '(sem resposta)';
-        ultimaResposta = reply;
-        adicionarMensagem('bot', reply);
-        statusEl.textContent = 'Resposta recebida.';
-
-        // FALA AUTOMÁTICA da resposta
+        adicionarMensagem("bot", data.reply);
+        ultimaResposta = data.reply;
+        statusEl.textContent = "Resposta recebida.";
         await ouvirUltimaRespostaIA();
       } catch (err) {
         console.error(err);
-        statusEl.textContent = 'Erro ao se comunicar com o servidor.';
+        statusEl.textContent = "Erro ao se comunicar com o servidor.";
       }
     }
 
-    async function enviarArquivo() {
-      const fileInput = document.getElementById('file');
-      const file = fileInput.files[0];
+    document.getElementById("send-text").onclick = enviarTexto;
 
-      if (!file) {
-        alert('Escolha um arquivo de texto primeiro.');
-        return;
-      }
-
-      statusEl.textContent = 'Enviando arquivo para o servidor...';
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('client_id', clientId); // <- ESSENCIAL!
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!res.ok) throw new Error('Erro na resposta do servidor ao enviar arquivo.');
-
-        const data = await res.json();
-
-        if (data.error) {
-          statusEl.textContent = 'Erro: ' + data.error;
-          return;
-        }
-
-        const nome = data.filename || file.name;
-        const preview = data.preview || '(sem prévia)';
-        const resumo = data.summary || '(não foi possível gerar resumo)';
-
-        adicionarMensagem('user', 'Enviei o arquivo: ' + nome);
-        adicionarMensagem(
-          'bot',
-          'Li o arquivo "' + nome + '".\n\nPrévia do conteúdo:\n' +
-          preview + '\n\nResumo gerado pela Bruner:\n' + resumo
-        );
-
-        ultimaResposta = resumo;
-        statusEl.textContent = 'Arquivo processado e resumo gerado.';
-
-        // opcional: já falar o resumo
-        await ouvirUltimaRespostaIA();
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = 'Erro ao enviar arquivo.';
-      }
-    }
-
-    // ========================
-    // Leitura pelo NAVEGADOR
-    // ========================
-    function ouvirUltimaResposta() {
-      if (!ultimaResposta) {
-        alert('Ainda não há nenhuma resposta para ler.');
-        return;
-      }
-
-      if (!('speechSynthesis' in window)) {
-        alert('Seu navegador não suporta leitura de texto via síntese de voz.');
-        return;
-      }
-
-      // Cancela qualquer fala anterior
-      window.speechSynthesis.cancel();
-
-      navegadorUtterance = new SpeechSynthesisUtterance(ultimaResposta);
-      navegadorUtterance.lang = 'pt-BR';
-      navegadorUtterance.rate = 1;
-      navegadorUtterance.pitch = 1;
-
-      navegadorUtterance.onstart = () => {
-        statusEl.textContent = 'Lendo com voz do navegador...';
-      };
-      navegadorUtterance.onend = () => {
-        statusEl.textContent = 'Leitura (navegador) finalizada.';
-      };
-
-      window.speechSynthesis.speak(navegadorUtterance);
-    }
-
-    // ========================
-    // Leitura pela IA (TTS)
-    // ========================
     async function ouvirUltimaRespostaIA() {
-      if (!ultimaResposta) {
-        alert('Ainda não há nenhuma resposta para ler.');
-        return;
-      }
-
-      statusEl.textContent = 'Gerando áudio com voz da Bruner (IA)...';
-
+      if (!ultimaResposta) return;
+      statusEl.textContent = "Gerando áudio...";
       try {
-        const res = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: ultimaResposta })
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: ultimaResposta }),
         });
-
-        if (!res.ok) throw new Error('Erro ao gerar áudio.');
-
+        if (!res.ok) throw new Error("Falha no TTS");
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
+        audioPlayer.src = url;
+        audioPlayer.play();
+        statusEl.textContent = "Reproduzindo áudio.";
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = "Erro ao gerar áudio.";
+      }
+    }
 
-        // Se já existia um áudio, para e libera
-        if (iaAudio) {
-          iaAudio.pause();
-          URL.revokeObjectURL(iaAudio.src);
-          iaAudio = null;
-        }
+    document.getElementById("speak-ia").onclick = ouvirUltimaRespostaIA;
+    document.getElementById("play-pause").onclick = () => {
+      if (audioPlayer.paused) audioPlayer.play();
+      else audioPlayer.pause();
+    };
 
-        iaAudio = new Audio(url);
-        iaAudio.onended = () => {
-          statusEl.textContent = 'Áudio da Bruner finalizado.';
-          document.getElementById('toggle-ia').textContent = 'Play / Pause IA';
-        };
-        iaAudio.play();
+    // ------------------- Upload de arquivo -------------------
+    document.getElementById("send-file").onclick = async () => {
+      const fileInput = document.getElementById("file-input");
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Escolha um arquivo primeiro.");
+        return;
+      }
 
-        statusEl.textContent = 'Reproduzindo áudio (IA).';
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("client_id", clientId);
+
+      statusEl.textContent = "Enviando arquivo...";
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        adicionarMensagem("bot", "Resumo: " + data.summary);
+        ultimaResposta = data.summary;
+        statusEl.textContent = "Arquivo processado.";
       } catch (err) {
         console.error(err);
-        statusEl.textContent = 'Erro ao gerar áudio com a IA.';
+        statusEl.textContent = "Erro ao enviar arquivo.";
       }
-    }
+    };
 
-    function toggleAudioIA() {
-      if (!iaAudio) {
-        alert('Nenhum áudio IA foi gerado ainda. Clique primeiro em "Gerar áudio IA" ou aguarde a resposta automática.');
+    // ------------------- Gravação de áudio -------------------
+    document.getElementById("start-rec").onclick = async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        alert("Seu navegador não suporta gravação de áudio.");
         return;
       }
-
-      const toggleBtn = document.getElementById('toggle-ia');
-
-      if (iaAudio.paused) {
-        iaAudio.play();
-        statusEl.textContent = 'Reproduzindo áudio (IA).';
-        toggleBtn.textContent = 'Pausar IA';
-      } else {
-        iaAudio.pause();
-        statusEl.textContent = 'Áudio IA pausado.';
-        toggleBtn.textContent = 'Play / Pause IA';
-      }
-    }
-
-    // ========================
-    // GRAVAÇÃO DE VOZ (STT)
-    // ========================
-    let mediaRecorder = null;
-    let audioChunks = [];
-
-    async function iniciarGravacao() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Seu navegador não suporta gravação de áudio.');
-        return;
-      }
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
-
         audioChunks = [];
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            audioChunks.push(e.data);
-          }
-        };
-
-        mediaRecorder.onstop = enviarAudioParaServidor;
-
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
         mediaRecorder.start();
-        statusEl.textContent = 'Gravando... fale com a Agente B agora.';
-        document.getElementById('start-rec').disabled = true;
-        document.getElementById('stop-rec').disabled = false;
-      } catch (err) {
-        console.error(err);
-        alert('Erro ao acessar o microfone.');
+        statusEl.textContent = "Gravando... fale com o Agente B.";
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = "Erro ao acessar microfone.";
       }
-    }
+    };
 
-    function pararGravacao() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-        statusEl.textContent = 'Processando áudio...';
-        document.getElementById('start-rec').disabled = false;
-        document.getElementById('stop-rec').disabled = true;
-      }
-    }
+    document.getElementById("stop-rec").onclick = async () => {
+      if (!mediaRecorder) return;
+      mediaRecorder.stop();
+      mediaRecorder.onstop = enviarAudioParaServidor;
+      statusEl.textContent = "Processando áudio...";
+    };
 
     async function enviarAudioParaServidor() {
       if (!audioChunks.length) {
-        statusEl.textContent = 'Nenhum áudio capturado.';
+        statusEl.textContent = "Nenhum áudio capturado.";
         return;
       }
 
-      // Em iOS, o MediaRecorder normalmente gera áudio compatível com mp4.
-      const mimeType = isIOS ? 'audio/mp4' : 'audio/webm';
-      const fileName = isIOS ? 'gravacao.m4a' : 'gravacao.webm';
-
+      const mimeType = isIOS ? "audio/mp4" : "audio/webm";
+      const fileName = isIOS ? "voz.m4a" : "voz.webm";
       const blob = new Blob(audioChunks, { type: mimeType });
-
       const formData = new FormData();
-      formData.append('audio', blob, fileName);
-      formData.append('client_id', clientId);
+      formData.append("audio", blob, fileName);
+      formData.append("client_id", clientId);
 
       try {
-        const res = await fetch('/api/stt', {
-          method: 'POST',
-          body: formData
-        });
-
-        // Se o servidor respondeu com erro, tentar ler a mensagem de erro
-        const contentType = res.headers.get('Content-Type') || '';
+        const res = await fetch("/api/stt", { method: "POST", body: formData });
+        const contentType = res.headers.get("Content-Type") || "";
         let data;
-        if (contentType.includes('application/json')) {
-          data = await res.json();
-        } else {
+        if (contentType.includes("application/json")) data = await res.json();
+        else {
           const text = await res.text();
-          data = { error: text || 'Erro desconhecido ao processar áudio.' };
+          data = { error: text };
         }
 
         if (!res.ok || data.error) {
-          statusEl.textContent = 'Erro: ' + (data.error || 'Falha ao processar áudio.');
-          console.error('Erro /api/stt:', data);
+          statusEl.textContent = "Erro: " + (data.error || "Falha ao processar áudio.");
+          console.error("Erro /api/stt:", data);
           return;
         }
 
-        const userText = data.user_text || '(não reconhecido)';
-        const replyText = data.reply_text || '(sem resposta)';
-
-        adicionarMensagem('user', userText);
-        adicionarMensagem('bot', replyText);
-
-        ultimaResposta = replyText;
-        statusEl.textContent = 'Resposta de voz processada.';
-
-        // Fala automática da resposta de voz
+        adicionarMensagem("user", data.user_text);
+        adicionarMensagem("bot", data.reply_text);
+        ultimaResposta = data.reply_text;
+        statusEl.textContent = "Resposta de voz recebida.";
         await ouvirUltimaRespostaIA();
       } catch (err) {
         console.error(err);
-        statusEl.textContent = 'Erro ao processar áudio (requisição falhou).';
+        statusEl.textContent = "Erro ao processar áudio.";
       }
     }
-
-    // ========================
-    // EVENT LISTENERS
-    // ========================
-
-    document.getElementById('send').addEventListener('click', enviarMensagem);
-    document.getElementById('upload').addEventListener('click', enviarArquivo);
-    document.getElementById('speak').addEventListener('click', ouvirUltimaResposta);
-    document.getElementById('speak-ia').addEventListener('click', ouvirUltimaRespostaIA);
-    document.getElementById('toggle-ia').addEventListener('click', toggleAudioIA);
-
-    document.getElementById('start-rec').addEventListener('click', iniciarGravacao);
-    document.getElementById('stop-rec').addEventListener('click', pararGravacao);
-
-    // Enter envia, Shift+Enter quebra linha
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        enviarMensagem();
-      }
-    });
   </script>
 </body>
 </html>
