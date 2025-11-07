@@ -183,7 +183,7 @@ def chat():
 @app.route("/api/upload", methods=["POST"])
 def upload():
     """
-    Recebe um arquivo, lê o conteúdo (TXT ou PDF) e devolve prévia + resumo pela IA.
+    Recebe um arquivo, lê o conteúdo (TXT ou PDF) e devolve prévia + resumo completo do PDF pela IA.
     Também armazena o texto completo na memória do client_id para permitir perguntas sobre ele.
     """
     arquivo = request.files.get("file")
