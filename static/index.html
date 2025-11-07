@@ -199,23 +199,53 @@
     document.getElementById("send-text").onclick = enviarTexto;
 
     async function ouvirUltimaRespostaIA() {
-      if (!ultimaResposta) return;
-      statusEl.textContent = "Gerando áudio...";
+      if (!ultimaResposta) {
+        alert("Ainda não há resposta para ler.");
+        return;
+      }
+
+      statusEl.textContent = "Gerando áudio com voz do Agente B...";
+
       try {
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: ultimaResposta }),
         });
-        if (!res.ok) throw new Error("Falha no TTS");
+
+        const contentType = res.headers.get("Content-Type") || "";
+        // Se der erro, tentar extrair mensagem do servidor
+        if (!res.ok) {
+          if (contentType.includes("application/json")) {
+            const data = await res.json();
+            statusEl.textContent =
+              "Erro ao gerar áudio: " + (data.error || "Erro desconhecido.");
+            console.error("Erro /api/tts:", data);
+          } else {
+            const text = await res.text();
+            statusEl.textContent =
+              "Erro ao gerar áudio: " + (text || "Erro desconhecido.");
+            console.error("Erro /api/tts (texto):", text);
+          }
+          return;
+        }
+
+        // Se deu certo, vem o binário do MP3
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        audioPlayer.src = url;
+
+        if (audioPlayer) {
+          audioPlayer.pause();
+        }
+        audioPlayer = new Audio(url);
+        audioPlayer.onended = () => {
+          statusEl.textContent = "Áudio do Agente B finalizado.";
+        };
         audioPlayer.play();
-        statusEl.textContent = "Reproduzindo áudio.";
+        statusEl.textContent = "Reproduzindo áudio...";
       } catch (e) {
         console.error(e);
-        statusEl.textContent = "Erro ao gerar áudio.";
+        statusEl.textContent = "Erro ao gerar áudio (falha de rede).";
       }
     }
 

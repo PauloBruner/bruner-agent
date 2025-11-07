@@ -111,21 +111,22 @@ def resumir_texto(conteudo: str) -> str:
         print("Erro ao chamar OpenAI (resumo):", repr(e))
         return f"Não consegui resumir o texto por um erro técnico: {e}"
 
-
 def gerar_audio_openai(texto: str) -> str:
     """
     Gera um arquivo MP3 com a voz da OpenAI e devolve o caminho temporário do arquivo.
-    Versão simplificada (sem streaming) para ser mais estável em produção.
+    Versão usando streaming oficial (mais estável).
     """
     if client is None:
         raise RuntimeError("OpenAI não configurada")
 
+    # cria arquivo temporário
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
     tmp_path = tmp.name
     tmp.close()
 
     try:
-        audio_bytes = client.audio.speech.create(
+        # Versão recomendada pela OpenAI: with_streaming_response + stream_to_file
+        with client.audio.speech.with_streaming_response.create(
             model="gpt-4o-mini-tts",
             voice="alloy",
             input=texto,
@@ -133,19 +134,17 @@ def gerar_audio_openai(texto: str) -> str:
                 "Fale em português brasileiro, com sotaque natural do Brasil, "
                 "pronúncia clara e ritmo de leitura natural."
             ),
-        )
-
-        # A API retorna bytes; gravamos no arquivo temporário
-        with open(tmp_path, "wb") as f:
-            f.write(audio_bytes)
+        ) as response:
+            response.stream_to_file(tmp_path)
 
     except Exception as e:
         print("Erro ao gerar TTS:", repr(e))
-        # apaga o arquivo se algo der errado
+        # apaga o arquivo se der erro
         try:
             os.unlink(tmp_path)
         except OSError:
             pass
+        # repassa o erro para ser tratado na rota /api/tts
         raise
 
     return tmp_path
@@ -251,7 +250,6 @@ def upload():
         "summary": resumo,
     })
 
-
 @app.route("/api/tts", methods=["POST"])
 def tts():
     """
@@ -269,7 +267,6 @@ def tts():
     except Exception as e:
         print("Erro ao gerar TTS /api/tts:", repr(e))
         return jsonify({"error": f"Falha ao gerar áudio: {e}"}), 500
-
 
 @app.route("/api/stt", methods=["POST"])
 def stt_conversa():
