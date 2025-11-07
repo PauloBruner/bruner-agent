@@ -85,7 +85,7 @@ def resumir_texto(conteudo: str) -> str:
     trecho = conteudo[:8000]
 
     prompt = (
-        "Resuma o texto abaixo em 5 a 8 linhas, em português claro, "
+        "Resuma o texto completo abaixo, em português claro, "
         "destacando ideias principais, tópicos importantes e conclusões.\n\n"
         f"Texto:\n{trecho}"
     )
@@ -97,7 +97,7 @@ def resumir_texto(conteudo: str) -> str:
                 {
                     "role": "system",
                     "content": (
-                        "Você é um assistente que faz resumos claros e organizados "
+                        "Você é um assistente que faz resumos completos, claros e organizados "
                         "em português brasileiro."
                     ),
                 },
